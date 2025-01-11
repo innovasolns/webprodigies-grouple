@@ -65,8 +65,26 @@ export const useCreateCourse = (groupid: string) => {
       privacy: string
       published: boolean
     }) => {
-      const uploaded = await upload.uploadFile(data.image[0])
-      const course = await onCreateGroupCourse(
+      console.log('Attempting to upload course image:', {
+        fileName: data.image[0].name,
+        fileType: data.image[0].type,
+        fileSize: data.image[0].size,
+        uploadcareConfig: {
+          hasKey: !!process.env.UPLOADCARE_PUB_KEY,
+          keyValue: process.env.UPLOADCARE_PUB_KEY
+        }
+      });
+
+      try {
+        console.log("Starting course image upload...");
+        const uploaded = await upload.uploadFile(data.image[0])
+        console.log("Course image upload response:", uploaded);
+
+        if (!uploaded?.uuid) {
+          throw new Error("Failed to upload course image");
+        }
+
+        const course = await onCreateGroupCourse(
         groupid,
         data.name,
         uploaded.uuid,

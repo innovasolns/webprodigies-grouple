@@ -196,6 +196,16 @@ export const useGroupSettings = (groupid: string) => {
       if (values.thumbnail && values.thumbnail.length > 0) {
         const thumbnailFile = values.thumbnail[0]
 
+        console.log("Attempting to upload cover image:", {
+          fileName: thumbnailFile.name,
+          fileType: thumbnailFile.type,
+          fileSize: thumbnailFile.size,
+          uploadcareConfig: {
+            hasKey: !!process.env.UPLOADCARE_PUB_KEY,
+            keyValue: process.env.UPLOADCARE_PUB_KEY,
+          },
+        })
+
         // Validate file type and size
         if (!thumbnailFile.type.startsWith("image/")) {
           return toast("Error", {
@@ -211,7 +221,10 @@ export const useGroupSettings = (groupid: string) => {
         }
 
         try {
+          console.log("Starting cover image upload...")
           const uploaded = await upload.uploadFile(thumbnailFile)
+          console.log("Upload response:", uploaded)
+
           if (!uploaded?.uuid) {
             throw new Error("Failed to upload cover image")
           }
@@ -231,7 +244,15 @@ export const useGroupSettings = (groupid: string) => {
             description: "Cover image updated successfully",
           })
         } catch (error) {
-          console.error("Cover image upload error:", error)
+          console.error("Cover image upload error:", {
+            error,
+            errorMessage:
+              error instanceof Error ? error.message : "Unknown error",
+            uploadcareConfig: {
+              hasKey: !!process.env.UPLOADCARE_PUB_KEY,
+              keyValue: process.env.UPLOADCARE_PUB_KEY,
+            },
+          })
           return toast("Error", {
             description:
               error instanceof Error
@@ -242,6 +263,12 @@ export const useGroupSettings = (groupid: string) => {
       }
       if (values.icon && values.icon.length > 0) {
         const iconFile = values.icon[0]
+
+        console.log("Attempting to upload icon:", {
+          fileName: iconFile.name,
+          fileType: iconFile.type,
+          fileSize: iconFile.size,
+        })
 
         // Validate file type and size
         if (!iconFile.type.startsWith("image/")) {
@@ -258,7 +285,10 @@ export const useGroupSettings = (groupid: string) => {
         }
 
         try {
+          console.log("Starting icon upload...")
           const uploaded = await upload.uploadFile(iconFile)
+          console.log("Icon upload response:", uploaded)
+
           if (!uploaded?.uuid) {
             throw new Error("Failed to upload icon")
           }
@@ -278,7 +308,11 @@ export const useGroupSettings = (groupid: string) => {
             description: "Profile icon updated successfully",
           })
         } catch (error) {
-          console.error("Icon upload error:", error)
+          console.error("Icon upload error:", {
+            error,
+            errorMessage:
+              error instanceof Error ? error.message : "Unknown error",
+          })
           return toast("Error", {
             description:
               error instanceof Error
@@ -362,6 +396,7 @@ export const useGroupSettings = (groupid: string) => {
     onDescription,
   }
 }
+
 export const useGroupList = (query: string) => {
   const { data } = useQuery({
     queryKey: [query],
@@ -600,24 +635,44 @@ export const useMediaGallery = (groupid: string) => {
         }
       }
       if (values.image && values.image.length) {
+        console.log("Starting gallery image uploads:", {
+          fileCount: values.image.length,
+          uploadcareConfig: {
+            hasKey: !!process.env.UPLOADCARE_PUB_KEY,
+            keyValue: process.env.UPLOADCARE_PUB_KEY,
+          },
+        })
+
         let count = 0
         while (count < values.image.length) {
+          console.log(`Uploading image ${count + 1}/${values.image.length}`, {
+            fileName: values.image[count].name,
+            fileType: values.image[count].type,
+            fileSize: values.image[count].size,
+          })
+
           const uploaded = await upload.uploadFile(values.image[count])
+          console.log(`Upload response for image ${count + 1}:`, uploaded)
+
           if (uploaded) {
             const update = await onUpdateGroupGallery(groupid, uploaded.uuid)
             if (update?.status !== 200) {
+              console.error(
+                `Failed to update gallery with image ${count + 1}:`,
+                update,
+              )
               toast("Error", {
                 description: update?.message,
               })
               break
             }
           } else {
+            console.error(`Upload failed for image ${count + 1}`)
             toast("Error", {
               description: "Looks like something went wrong!",
             })
             break
           }
-          console.log("increment")
           count++
         }
       }

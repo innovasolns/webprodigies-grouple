@@ -149,18 +149,42 @@ export const suggestionItems = createSuggestionItems([
       input.onchange = async () => {
         if (input.files?.length) {
           const file = input.files[0]
-          const uploaded = await upload.uploadFile(file)
-          //This should return a src of the uploaded image
-          const imgsrc = `https://ucarecdn.com/${uploaded.uuid}/`
-          if (imgsrc) {
-            editor.commands.insertContent([
-              {
-                type: "image",
-                attrs: {
-                  src: imgsrc,
+          console.log("Attempting to upload rich text image:", {
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+            uploadcareConfig: {
+              hasKey: !!process.env.UPLOADCARE_PUB_KEY,
+              keyValue: process.env.UPLOADCARE_PUB_KEY,
+            },
+          })
+
+          try {
+            console.log("Starting rich text image upload...")
+            const uploaded = await upload.uploadFile(file)
+            console.log("Rich text image upload response:", uploaded)
+
+            if (!uploaded?.uuid) {
+              throw new Error("Failed to upload rich text image")
+            }
+
+            const imgsrc = `https://ucarecdn.com/${uploaded.uuid}/`
+            if (imgsrc) {
+              editor.commands.insertContent([
+                {
+                  type: "image",
+                  attrs: {
+                    src: imgsrc,
+                  },
                 },
-              },
-            ])
+              ])
+            }
+          } catch (error) {
+            console.error("Rich text image upload error:", {
+              error,
+              errorMessage:
+                error instanceof Error ? error.message : "Unknown error",
+            })
           }
         }
       }

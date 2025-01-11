@@ -11,11 +11,16 @@ type Props = { userImage: string; channelid: string; username: string }
 
 const CreateNewPost = ({ channelid, userImage, username }: Props) => {
   const { data, mutation } = useChannelPage(channelid)
-  const { name } = data as { name: string }
+  const channelName =
+    data && "posts" in data && data.posts.length > 0
+      ? data.posts[0].channel.name
+      : "Loading..."
 
   return (
     <>
       <SimpleModal
+        title="Create Post"
+        hideTitle={true}
         trigger={
           <span>
             <Card className="border-themeGray cursor-pointer first-letter:rounded-2xl overflow-hidden">

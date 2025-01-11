@@ -308,72 +308,95 @@ export const onUpDateGroupSettings = async (
   path: string,
 ) => {
   try {
-    if (type === "IMAGE") {
-      await client.group.update({
-        where: {
-          id: groupid,
-        },
-        data: {
-          thumbnail: content,
-        },
-      })
+    // Validate input
+    if (!groupid || !type || !content) {
+      return {
+        status: 400,
+        message: "Missing required parameters",
+      }
     }
-    if (type === "ICON") {
-      await client.group.update({
-        where: {
-          id: groupid,
-        },
-        data: {
-          icon: content,
-        },
-      })
-      console.log("uploaded image")
+
+    // Validate content based on type
+    if (type === "NAME" && content.length > 100) {
+      return {
+        status: 400,
+        message: "Group name must be less than 100 characters",
+      }
     }
-    if (type === "DESCRIPTION") {
-      await client.group.update({
-        where: {
-          id: groupid,
-        },
-        data: {
-          description: content,
-        },
-      })
+
+    if (
+      (type === "DESCRIPTION" ||
+        type === "JSONDESCRIPTION" ||
+        type === "HTMLDESCRIPTION") &&
+      content.length > 5000
+    ) {
+      return {
+        status: 400,
+        message: "Description must be less than 5000 characters",
+      }
     }
-    if (type === "NAME") {
-      await client.group.update({
-        where: {
-          id: groupid,
-        },
-        data: {
-          name: content,
-        },
+
+    // Use transaction for atomic updates
+    const result = await client.$transaction(async (tx) => {
+      const updateData: Record<string, string> = {}
+
+      switch (type) {
+        case "IMAGE":
+          updateData.thumbnail = content
+          break
+        case "ICON":
+          updateData.icon = content
+          break
+        case "DESCRIPTION":
+          updateData.description = content
+          break
+        case "NAME":
+          updateData.name = content
+          break
+        case "JSONDESCRIPTION":
+          updateData.jsonDescription = content
+          break
+        case "HTMLDESCRIPTION":
+          updateData.htmlDescription = content
+          break
+        default:
+          throw new Error("Invalid update type")
+      }
+
+      const updatedGroup = await tx.group.update({
+        where: { id: groupid },
+        data: updateData,
       })
+
+      if (!updatedGroup) {
+        throw new Error("Failed to update group settings")
+      }
+
+      return updatedGroup
+    })
+
+    // Revalidate specific paths based on update type
+    const revalidatePaths = [
+      path,
+      `/group/${groupid}`,
+      `/group/${groupid}/settings`,
+    ]
+
+    revalidatePaths.forEach((p) => revalidatePath(p))
+
+    return {
+      status: 200,
+      message: "Group settings updated successfully",
     }
-    if (type === "JSONDESCRIPTION") {
-      await client.group.update({
-        where: {
-          id: groupid,
-        },
-        data: {
-          jsonDescription: content,
-        },
-      })
-    }
-    if (type === "HTMLDESCRIPTION") {
-      await client.group.update({
-        where: {
-          id: groupid,
-        },
-        data: {
-          htmlDescription: content,
-        },
-      })
-    }
-    revalidatePath(path)
-    return { status: 200 }
   } catch (error) {
-    console.log(error)
-    return { status: 400 }
+    console.error("Group settings update error:", error)
+    return {
+      status: 500,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to update group settings",
+    }
   }
 }
 
@@ -764,46 +787,45 @@ export const onGetDomainConfig = async (groupId: string) => {
   }
 }
 
-
 export const onAddCustomDomain = async (groupid: string, domain: string) => {
   try {
-      const addDomainHttpUrl = `https://api.vercel.com/v10/projects/${process.env.PROJECT_ID_VERCEL}/domains?teamId=${process.env.TEAM_ID_VERCEL}`
-      //we now insert domain into our vercel project
-      //we make an http request to vercel
-      const response = await axios.post(
-          addDomainHttpUrl,
-          {
-              name: domain,
-          },
-          {
-              headers: {
-                  Authorization: `Bearer ${process.env.AUTH_BEARER_TOKEN}`,
-                  "Content-Type": "application/json",
-              },
-          },
-      )
+    const addDomainHttpUrl = `https://api.vercel.com/v10/projects/${process.env.PROJECT_ID_VERCEL}/domains?teamId=${process.env.TEAM_ID_VERCEL}`
+    //we now insert domain into our vercel project
+    //we make an http request to vercel
+    const response = await axios.post(
+      addDomainHttpUrl,
+      {
+        name: domain,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.AUTH_BEARER_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      },
+    )
 
-      if (response) {
-          const newDomain = await client.group.update({
-              where: {
-                  id: groupid,
-              },
-              data: {
-                  domain,
-              },
-          })
+    if (response) {
+      const newDomain = await client.group.update({
+        where: {
+          id: groupid,
+        },
+        data: {
+          domain,
+        },
+      })
 
-          if (newDomain) {
-              return {
-                  status: 200,
-                  message: "Domain successfully added",
-              }
-          }
+      if (newDomain) {
+        return {
+          status: 200,
+          message: "Domain successfully added",
+        }
       }
+    }
 
-      return { status: 404, message: "Group not found" }
+    return { status: 404, message: "Group not found" }
   } catch (error) {
-      console.log(error)
-      return { status: 400, message: "Oops something went wrong" }
+    console.log(error)
+    return { status: 400, message: "Oops something went wrong" }
   }
 }

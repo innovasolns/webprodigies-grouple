@@ -6,7 +6,13 @@ import { currentUser } from "@clerk/nextjs/server"
 export const onAuthenticatedUser = async () => {
   try {
     const clerk = await currentUser()
-    if (!clerk) return { status: 404 }
+    if (!clerk) {
+      console.error("Clerk user not found")
+      return {
+        status: 404,
+        message: "User not authenticated",
+      }
+    }
 
     const user = await client.user.findUnique({
       where: {
@@ -18,19 +24,27 @@ export const onAuthenticatedUser = async () => {
         lastname: true,
       },
     })
-    if (user)
+
+    if (!user) {
+      console.error("Local user not found for Clerk ID:", clerk.id)
       return {
-        status: 200,
-        id: user.id,
-        image: clerk.imageUrl,
-        username: `${user.firstname} ${user.lastname}`,
+        status: 404,
+        message: "User not found in database",
       }
+    }
+
     return {
-      status: 404,
+      status: 200,
+      id: user.id,
+      image: clerk.imageUrl,
+      username: `${user.firstname} ${user.lastname}`,
+      message: "Authentication successful",
     }
   } catch (error) {
+    console.error("Authentication error:", error)
     return {
-      status: 400,
+      status: 500,
+      message: "Internal server error during authentication",
     }
   }
 }

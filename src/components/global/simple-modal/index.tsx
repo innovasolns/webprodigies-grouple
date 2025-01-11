@@ -8,14 +8,16 @@ import {
 } from "@/components/ui/dialog"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 import Image from "next/image"
+import { VisuallyHidden } from "../visually-hidden"
 
 type SimpleModalProps = {
   trigger: JSX.Element
   children: React.ReactNode
-  title?: string
+  title: string
   description?: string
   type?: "Integration"
   logo?: string
+  hideTitle?: boolean
 }
 
 export const SimpleModal = ({
@@ -25,6 +27,7 @@ export const SimpleModal = ({
   title,
   logo,
   description,
+  hideTitle,
 }: SimpleModalProps) => {
   switch (type) {
     case "Integration":
@@ -67,6 +70,18 @@ export const SimpleModal = ({
         <Dialog>
           <DialogTrigger asChild>{trigger}</DialogTrigger>
           <DialogContent className="bg-[#1C1C1E] !max-w-2xl border-themeGray">
+            <DialogHeader>
+              {hideTitle ? (
+                <VisuallyHidden>
+                  <DialogTitle>{title}</DialogTitle>
+                </VisuallyHidden>
+              ) : (
+                <DialogTitle>{title}</DialogTitle>
+              )}
+              {description && (
+                <DialogDescription>{description}</DialogDescription>
+              )}
+            </DialogHeader>
             {children}
           </DialogContent>
         </Dialog>

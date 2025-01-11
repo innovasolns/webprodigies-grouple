@@ -124,8 +124,8 @@ export const useChannelInfo = () => {
 }
 
 export const useChannelPage = (channelid: string) => {
-  const { data } = useQuery({
-    queryKey: ["channel-info"],
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["channel-info", channelid],
     queryFn: () => onGetChannelInfo(channelid),
   })
 
@@ -139,7 +139,42 @@ export const useChannelPage = (channelid: string) => {
     },
   })
 
-  return { data, mutation }
+  return {
+    data: data as
+      | {
+          posts: {
+            id: string
+            createdAt: Date
+            title: string | null
+            htmlContent: string | null
+            jsonContent: string | null
+            content: string
+            authorId: string
+            channelId: string
+            likes: {
+              id: string
+              userId: string
+            }[]
+            channel: {
+              name: string
+            }
+            _count: {
+              likes: number
+              comments: number
+            }
+            author: {
+              firstname: string
+              lastname: string
+              image: string | null
+            }
+          }[]
+        }
+      | null
+      | undefined,
+    isLoading,
+    isError,
+    mutation,
+  }
 }
 
 export const useCreateChannelPost = (channelid: string) => {

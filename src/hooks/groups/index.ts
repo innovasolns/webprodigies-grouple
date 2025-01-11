@@ -194,31 +194,96 @@ export const useGroupSettings = (groupid: string) => {
     mutationKey: ["group-settings"],
     mutationFn: async (values: z.infer<typeof GroupSettingsSchema>) => {
       if (values.thumbnail && values.thumbnail.length > 0) {
-        const uploaded = await upload.uploadFile(values.thumbnail[0])
-        const updated = await onUpDateGroupSettings(
-          groupid,
-          "IMAGE",
-          uploaded.uuid,
-          `/group/${groupid}/settings`,
-        )
-        if (updated.status !== 200) {
+        const thumbnailFile = values.thumbnail[0]
+
+        // Validate file type and size
+        if (!thumbnailFile.type.startsWith("image/")) {
           return toast("Error", {
-            description: "Oops! looks like your form is empty",
+            description: "Only image files are allowed for cover images",
+          })
+        }
+
+        if (thumbnailFile.size > 10 * 1024 * 1024) {
+          // 10MB limit for cover images
+          return toast("Error", {
+            description: "Cover image must be less than 10MB",
+          })
+        }
+
+        try {
+          const uploaded = await upload.uploadFile(thumbnailFile)
+          if (!uploaded?.uuid) {
+            throw new Error("Failed to upload cover image")
+          }
+
+          const updated = await onUpDateGroupSettings(
+            groupid,
+            "IMAGE",
+            uploaded.uuid,
+            `/group/${groupid}/settings`,
+          )
+
+          if (updated.status !== 200) {
+            throw new Error("Failed to update cover image")
+          }
+
+          return toast("Success", {
+            description: "Cover image updated successfully",
+          })
+        } catch (error) {
+          console.error("Cover image upload error:", error)
+          return toast("Error", {
+            description:
+              error instanceof Error
+                ? error.message
+                : "Failed to update cover image",
           })
         }
       }
       if (values.icon && values.icon.length > 0) {
-        console.log("icon")
-        const uploaded = await upload.uploadFile(values.icon[0])
-        const updated = await onUpDateGroupSettings(
-          groupid,
-          "ICON",
-          uploaded.uuid,
-          `/group/${groupid}/settings`,
-        )
-        if (updated.status !== 200) {
+        const iconFile = values.icon[0]
+
+        // Validate file type and size
+        if (!iconFile.type.startsWith("image/")) {
           return toast("Error", {
-            description: "Oops! looks like your form is empty",
+            description: "Only image files are allowed for profile icons",
+          })
+        }
+
+        if (iconFile.size > 5 * 1024 * 1024) {
+          // 5MB limit
+          return toast("Error", {
+            description: "Profile icon must be less than 5MB",
+          })
+        }
+
+        try {
+          const uploaded = await upload.uploadFile(iconFile)
+          if (!uploaded?.uuid) {
+            throw new Error("Failed to upload icon")
+          }
+
+          const updated = await onUpDateGroupSettings(
+            groupid,
+            "ICON",
+            uploaded.uuid,
+            `/group/${groupid}/settings`,
+          )
+
+          if (updated.status !== 200) {
+            throw new Error("Failed to update group icon")
+          }
+
+          return toast("Success", {
+            description: "Profile icon updated successfully",
+          })
+        } catch (error) {
+          console.error("Icon upload error:", error)
+          return toast("Error", {
+            description:
+              error instanceof Error
+                ? error.message
+                : "Failed to update profile icon",
           })
         }
       }

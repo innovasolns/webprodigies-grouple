@@ -100,7 +100,7 @@ const GroupSettingsForm = ({ groupId }: Props) => {
           <BlockTextEditor
             errors={errors}
             name="jsondescription"
-            min={150}
+            min={5}
             max={10000}
             textContent={onDescription}
             content={onJsonDescription}

@@ -7,13 +7,13 @@ export const GroupSettingsSchema = z
   .object({
     name: z
       .string()
-      .min(3, { message: "name must have atleast 3 characters" })
+      .min(3, { message: "name must have at least 3 characters" })
       .optional()
       .or(z.literal("").transform(() => undefined)),
     description: z
       .string()
-      .min(100, {
-        message: "description must have atleast 100 characters",
+      .min(10, {
+        message: "description must have at least 10 characters",
       })
       .optional()
       .or(z.literal("").transform(() => undefined)),
@@ -25,7 +25,7 @@ export const GroupSettingsSchema = z
       .or(z.literal("").transform(() => undefined)),
     jsondescription: z
       .string()
-      .min(100, {
+      .min(10, {
         message: "description must have atleast 100 characters",
       })
       .optional()
